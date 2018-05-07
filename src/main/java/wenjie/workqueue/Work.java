@@ -8,27 +8,29 @@ import java.util.concurrent.TimeoutException;
 
 public class Work
 {
-    //队列名称
-    private final static String QUEUE_NAME = "workqueue";
+    // 队列名称
+    private final static String QUEUE_NAME = "workqueue_persistence";
 
     public static void main(String[] argv) throws java.io.IOException,
             java.lang.InterruptedException, TimeoutException {
-        //区分不同工作进程的输出
+        // 区分不同工作进程的输出
         int hashCode = Work.class.hashCode();
-        //创建连接和频道
+        // 创建连接和频道
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("localhost");
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
-        //声明队列
-        channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+        // 声明队列
+        boolean durable = true;
+        channel.queueDeclare(QUEUE_NAME, durable, false, false, null);
         System.out.println(hashCode
                 + " [*] Waiting for messages. To exit press CTRL+C");
-
+        //设置最大服务转发消息数量 公平转发
+        int prefetchCount = 1;
+        channel.basicQos(prefetchCount);
         QueueingConsumer consumer = new QueueingConsumer(channel);
-        //打开应答机制
-        boolean ack = false ;
         // 指定消费队列
+        boolean ack = false; // 打开应答机制
         channel.basicConsume(QUEUE_NAME, ack, consumer);
         while (true)
         {
@@ -38,14 +40,16 @@ public class Work
             System.out.println(hashCode + " [x] Received '" + message + "'");
             doWork(message);
             System.out.println(hashCode + " [x] Done");
-          //发送应答
+            //channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
             channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+
         }
 
     }
 
     /**
      * 每个点耗时1s
+     *
      * @param task
      * @throws InterruptedException
      */
