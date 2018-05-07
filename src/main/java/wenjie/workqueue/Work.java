@@ -26,8 +26,10 @@ public class Work
                 + " [*] Waiting for messages. To exit press CTRL+C");
 
         QueueingConsumer consumer = new QueueingConsumer(channel);
+        //打开应答机制
+        boolean ack = false ;
         // 指定消费队列
-        channel.basicConsume(QUEUE_NAME, true, consumer);
+        channel.basicConsume(QUEUE_NAME, ack, consumer);
         while (true)
         {
             QueueingConsumer.Delivery delivery = consumer.nextDelivery();
@@ -36,7 +38,8 @@ public class Work
             System.out.println(hashCode + " [x] Received '" + message + "'");
             doWork(message);
             System.out.println(hashCode + " [x] Done");
-
+          //发送应答
+            channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
         }
 
     }
